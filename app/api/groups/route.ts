@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Group creation error:", error);
     return NextResponse.json(
-      { message: "그룹 성 중 오류가 발생했습니다." },
+      { message: "그룹 �� 중 오류가 발생했습니다." },
       { status: 500 }
     );
   } finally {
@@ -77,6 +77,7 @@ export async function GET(request: Request) {
         id: true,
         name: true,
         description: true,
+        imageUrl: true,
         members: {
           select: {
             id: true,

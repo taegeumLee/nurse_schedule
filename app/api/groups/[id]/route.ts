@@ -31,6 +31,7 @@ export async function GET(
         id: true,
         name: true,
         description: true,
+        imageUrl: true,
         inviteCode: true,
         members: {
           select: {
@@ -48,7 +49,7 @@ export async function GET(
       );
     }
 
-    // 그룹 멤버인�� 확인
+    // 그룹 멤버인지 확인
     const isMember = group.members.some((member) => member.id === userId);
     if (!isMember) {
       return NextResponse.json(
@@ -77,15 +78,26 @@ export async function PUT(
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
-    const image = formData.get("image") as File;
+    const image = formData.get("image");
 
     let imageUrl = undefined;
-    if (image) {
-      const bytes = await image.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const path = join("public", "uploads", `${Date.now()}-${image.name}`);
-      await writeFile(path, buffer);
-      imageUrl = `/uploads/${path.split("/").pop()}`;
+
+    if (image && image instanceof Blob) {
+      // 파일 저장 경로 생성
+      const buffer = Buffer.from(await image.arrayBuffer());
+      const filename = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(7)}.jpg`;
+      const uploadDir = join(process.cwd(), "public", "uploads");
+      const filepath = join(uploadDir, filename);
+
+      try {
+        await writeFile(filepath, buffer);
+        imageUrl = `/uploads/${filename}`;
+      } catch (error) {
+        console.error("File write error:", error);
+        throw new Error("이미지 저장에 실패했습니다.");
+      }
     }
 
     const group = await prisma.group.update({
@@ -107,10 +119,12 @@ export async function PUT(
 
     return NextResponse.json(group);
   } catch (error) {
-    console.error(error);
+    console.error("Group update error:", error);
     return NextResponse.json(
       { message: "그룹 정보 수정에 실패했습니다." },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }

@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { slideUp } from "@/app/utils/animations";
 import { useTheme } from "next-themes";
 import { lightTheme, darkTheme } from "@/app/styles/theme";
+import Image from "next/image";
 
 interface Group {
   id: string;
@@ -16,6 +17,7 @@ interface Group {
     id: string;
     name: string;
   }[];
+  imageUrl?: string;
 }
 
 interface UserInfo {
@@ -31,6 +33,7 @@ export default function GroupsPage() {
   const { theme } = useTheme();
   const currentTheme = theme === "dark" ? darkTheme : lightTheme;
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -41,6 +44,7 @@ export default function GroupsPage() {
         }
         const data = await res.json();
         setGroups(data);
+        setIsLoading(true);
       } catch (error) {
         console.error(error);
         alert("그룹 목록을 가져오는데 실패했습니다.");
@@ -111,7 +115,7 @@ export default function GroupsPage() {
       >
         <div className="flex justify-between items-center mb-6">
           <h1 className={`text-2xl font-bold ${currentTheme.text.primary}`}>
-            근무 그룹
+            그룹 듀티
           </h1>
           <div className="flex gap-2">
             <button
@@ -139,17 +143,33 @@ export default function GroupsPage() {
                 href={`/nurse/groups/${group.id}`}
                 className="flex justify-between items-start p-2 rounded-lg"
               >
-                <div>
-                  <h3
-                    className={`font-semibold text-lg ${currentTheme.text.primary}`}
-                  >
-                    {group.name}
-                  </h3>
-                  {group.description && (
-                    <p className={currentTheme.text.secondary}>
-                      {group.description}
-                    </p>
+                <div className="flex items-center gap-4">
+                  {group.imageUrl ? (
+                    <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+                      <Image
+                        src={group.imageUrl}
+                        alt={group.name}
+                        width={48}
+                        height={48}
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700" />
                   )}
+                  <div>
+                    <h3
+                      className={`font-semibold text-lg ${currentTheme.text.primary}`}
+                    >
+                      {group.name}
+                    </h3>
+                    {group.description && (
+                      <p className={currentTheme.text.secondary}>
+                        {group.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div
                   className={`${currentTheme.text.tertiary} relative text-sm flex flex-col`}
