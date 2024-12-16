@@ -11,6 +11,8 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const id = params.id;
+
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("token");
@@ -26,7 +28,7 @@ export async function GET(
     const userId = decoded.userId as string;
 
     const group = await prisma.group.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         name: true,
@@ -49,7 +51,6 @@ export async function GET(
       );
     }
 
-    // 그룹 멤버인지 확인
     const isMember = group.members.some((member) => member.id === userId);
     if (!isMember) {
       return NextResponse.json(
@@ -74,6 +75,8 @@ export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const id = params.id;
+
   try {
     const formData = await request.formData();
     const name = formData.get("name") as string;
@@ -83,7 +86,6 @@ export async function PUT(
     let imageUrl = undefined;
 
     if (image && image instanceof Blob) {
-      // 파일 저장 경로 생성
       const buffer = Buffer.from(await image.arrayBuffer());
       const filename = `${Date.now()}-${Math.random()
         .toString(36)
@@ -101,7 +103,7 @@ export async function PUT(
     }
 
     const group = await prisma.group.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name,
         description,

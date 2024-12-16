@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -9,6 +9,12 @@ import { lightTheme, darkTheme } from "@/app/styles/theme";
 import { format, eachDayOfInterval, startOfMonth, endOfMonth } from "date-fns";
 import { ko } from "date-fns/locale";
 import GroupTable from "./GroupTable";
+import dynamic from "next/dynamic";
+
+// FullCalendar를 클라이언트 사이드에서만 렌더링하도록 설정
+const DynamicFullCalendar = dynamic(() => import("@fullcalendar/react"), {
+  ssr: false,
+});
 
 interface Schedule {
   id: string;
@@ -54,6 +60,11 @@ export default function GroupCalendar({
   );
   const [viewType, setViewType] = useState<"calendar" | "table">("calendar");
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleShiftTypeToggle = (shiftType: string) => {
     const newSelectedTypes = new Set(selectedShiftTypes);
@@ -102,6 +113,10 @@ export default function GroupCalendar({
       users: Array.from(userMap.entries()).map(([id, name]) => ({ id, name })),
     };
   };
+
+  if (!isMounted) {
+    return null; // 또는 로딩 상태를 표시
+  }
 
   return (
     <div className="mt-6">
@@ -163,7 +178,7 @@ export default function GroupCalendar({
       </div>
 
       {viewType === "calendar" ? (
-        <FullCalendar
+        <DynamicFullCalendar
           plugins={[dayGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           events={filteredEvents}

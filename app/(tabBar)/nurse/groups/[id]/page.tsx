@@ -39,7 +39,7 @@ const defaultShiftColors = {
 };
 
 export default function GroupDetailPage() {
-  const params = useParams() as { id: string };
+  const params = useParams();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showToast, setShowToast] = useState(false);
@@ -63,6 +63,8 @@ export default function GroupDetailPage() {
         }
         const data = await res.json();
         setGroup(data);
+        setEditedName(data.name);
+        setEditedDescription(data.description || "");
       } catch (error) {
         console.error(error);
         alert("그룹 정보를 불러오는데 실패했습니다.");
@@ -86,7 +88,6 @@ export default function GroupDetailPage() {
         if (!res.ok) throw new Error("스케줄을 불러올 수 없습니다.");
         const data = await res.json();
         setSchedules(data);
-        console.log(data);
       } catch (error) {
         console.error(error);
       }
@@ -133,12 +134,6 @@ export default function GroupDetailPage() {
       setGroup(updatedGroup);
       setIsEditing(false);
       setShowToast(true);
-
-      const refreshRes = await fetch(`/api/groups/${params.id}`);
-      if (refreshRes.ok) {
-        const refreshedData = await refreshRes.json();
-        setGroup(refreshedData);
-      }
     } catch (error) {
       console.error(error);
       alert(error instanceof Error ? error.message : "수정에 실패했습니다.");
