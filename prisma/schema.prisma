@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id                       String         @id @default(cuid())
+  email                    String         @unique
+  password                 String
+  name                     String
+  role                     String         @default("NURSE") // 'ADMIN', 'MANAGER', 'NURSE' 값만 허용
+  departmentId             String?
+  department               Department?    @relation(fields: [departmentId], references: [id])
+  schedules                Schedule[]
+  leaveRequests            LeaveRequest[]
+  preferredOffDaysPerMonth Int            @default(8) // 한달 희망 오프 수
+  shiftPreference          String         @default("DAY,EVENING,NIGHT")
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+  groups                   Group[]        @relation("GroupMembers")
+  adminGroups              Group[]        @relation("GroupAdmins")
+}
+
+model Schedule {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  date      DateTime
+  shiftType String // 'DAY', 'EVENING', 'NIGHT', 'OFF' 값만 허용
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+}
+
+model LeaveRequest {
+  id        String   @id @default(cuid())
+  date      DateTime
+  reason    String
+  status    String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  type      String   @default("OFF") // "DAY", "EVENING", "NIGHT", "OFF"
+  comment   String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HospitalEvent {
+  id          String   @id @default(cuid())
+  title       String
+  start       DateTime
+  end         DateTime
+  description String?
+  type        String // 'CONFERENCE', 'TRAINING', 'EVENT', 'OTHER'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  members     User[]   @relation("GroupMembers")
+  admins      User[]   @relation("GroupAdmins")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
