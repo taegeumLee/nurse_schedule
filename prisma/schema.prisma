@@ -79,6 +79,7 @@ model Group {
   id          String   @id @default(cuid())
   name        String
   description String?
+  imageUrl    String?
   inviteCode  String   @unique @default(cuid())
   members     User[]   @relation("GroupMembers")
   admins      User[]   @relation("GroupAdmins")

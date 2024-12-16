@@ -12,6 +12,15 @@ interface Group {
   name: string;
   description: string | null;
   memberCount: number;
+  members: {
+    id: string;
+    name: string;
+  }[];
+}
+
+interface UserInfo {
+  id: string;
+  name: string;
 }
 
 export default function GroupsPage() {
@@ -21,6 +30,7 @@ export default function GroupsPage() {
   const [isJoining, setIsJoining] = useState(false);
   const { theme } = useTheme();
   const currentTheme = theme === "dark" ? darkTheme : lightTheme;
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -38,6 +48,21 @@ export default function GroupsPage() {
     };
 
     fetchGroups();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const res = await fetch("/api/user/me");
+        if (!res.ok) throw new Error("사용자 정보를 가져올 수 없습니다.");
+        const data = await res.json();
+        setUserInfo(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchUserInfo();
   }, []);
 
   const handleJoinGroup = async () => {
@@ -106,12 +131,14 @@ export default function GroupsPage() {
 
         <div className="space-y-4">
           {groups.map((group) => (
-            <Link
+            <div
               key={group.id}
-              href={`/nurse/groups/${group.id}`}
               className={`block ${currentTheme.background.card} p-4 rounded-lg hover:bg-opacity-90 transition-colors`}
             >
-              <div className="flex justify-between items-center">
+              <Link
+                href={`/nurse/groups/${group.id}`}
+                className="flex justify-between items-start p-2 rounded-lg"
+              >
                 <div>
                   <h3
                     className={`font-semibold text-lg ${currentTheme.text.primary}`}
@@ -124,11 +151,25 @@ export default function GroupsPage() {
                     </p>
                   )}
                 </div>
-                <div className={currentTheme.text.tertiary}>
-                  멤버 {group.memberCount}명
+                <div
+                  className={`${currentTheme.text.tertiary} relative text-sm flex flex-col`}
+                >
+                  <span className="absolute top-5 right-0">
+                    멤버 {group.memberCount}명
+                  </span>
+                  <div className="flex flex-wrap">
+                    {group.members.map((member) => (
+                      <span
+                        key={member.id}
+                        className={`inline-flex items-center pl-1.5 py-1 rounded-md text-xs font-medium ${currentTheme.background.card}`}
+                      >
+                        {member.name === userInfo?.name ? "나" : member.name}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+            </div>
           ))}
         </div>
 

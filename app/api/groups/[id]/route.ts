@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import * as jose from "jose";
 import { PrismaClient } from "@prisma/client";
+import { writeFile } from "fs/promises";
+import { join } from "path";
 
 const prisma = new PrismaClient();
 
@@ -64,5 +66,51 @@ export async function GET(
     );
   } finally {
     await prisma.$disconnect();
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const formData = await request.formData();
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+    const image = formData.get("image") as File;
+
+    let imageUrl = undefined;
+    if (image) {
+      const bytes = await image.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const path = join("public", "uploads", `${Date.now()}-${image.name}`);
+      await writeFile(path, buffer);
+      imageUrl = `/uploads/${path.split("/").pop()}`;
+    }
+
+    const group = await prisma.group.update({
+      where: { id: params.id },
+      data: {
+        name,
+        description,
+        ...(imageUrl && { imageUrl }),
+      },
+      include: {
+        members: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(group);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { message: "그룹 정보 수정에 실패했습니다." },
+      { status: 500 }
+    );
   }
 }

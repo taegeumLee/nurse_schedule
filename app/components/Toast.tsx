@@ -20,7 +20,7 @@ export default function Toast({ message, onClose }: ToastProps) {
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 50 }}
-        className="fixed bottom-0 right-0 m-4 bg-white dark:bg-gray-800 text-green-600 dark:text-green-400 px-6 py-3 rounded-lg shadow-lg z-[9999] flex items-center gap-2"
+        className="fixed bottom-16 right-0 m-4 bg-white dark:bg-gray-800 text-green-600 dark:text-green-400 px-6 py-3 rounded-lg shadow-lg z-[9999] flex items-center gap-2"
       >
         <svg
           className="w-5 h-5"
