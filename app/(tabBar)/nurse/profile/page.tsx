@@ -22,25 +22,27 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-
   const currentTheme = theme === "dark" ? darkTheme : lightTheme;
 
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const res = await fetch("/api/user/me");
+        const res = await fetch("/api/user/me", {
+          credentials: "include",
+        });
         if (!res.ok) throw new Error("사용자 정보를 가져올 수 없습니다.");
         const data = await res.json();
         setUserInfo(data);
       } catch (error) {
         console.error("Error:", error);
+        router.push("/");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchUserInfo();
-  }, []);
+  }, [router]);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -124,6 +126,7 @@ export default function ProfilePage() {
             : undefined
         }
       />
+
       <button
         onClick={handleLogout}
         className={`mt-6 w-full flex items-center justify-center gap-2 ${currentTheme.button.danger} px-6 py-2 rounded-lg transition-colors`}

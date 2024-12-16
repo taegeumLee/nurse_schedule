@@ -25,6 +25,7 @@ export default function PreferenceSettings({
 }: PreferenceSettingsProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  console.log(initialPreferences);
   const [offDays, setOffDays] = useState(
     initialPreferences?.preferredOffDaysPerMonth || 8
   );
@@ -61,21 +62,49 @@ export default function PreferenceSettings({
 
   const handleSave = async () => {
     try {
+      if (offDays < 0) {
+        throw new Error("희망 오프 일수는 0 이상이어야 합니다.");
+      }
+
+      if (shiftOrder.length === 0) {
+        throw new Error("최소 하나의 근무 선호도를 선택해야 합니다.");
+      }
+
       const res = await fetch("/api/user/preferences", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
         body: JSON.stringify({
-          preferredOffDaysPerMonth: offDays,
+          preferredOffDaysPerMonth: Number(offDays),
           shiftPreference: shiftOrder.join(","),
         }),
       });
 
-      if (!res.ok) throw new Error("선호도 설정을 저장할 수 없습니다.");
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "선호도 설정을 저장할 수 없습니다.");
+      }
+
+      const data = await res.json();
+
+      if (data.preferredOffDaysPerMonth !== undefined) {
+        setOffDays(data.preferredOffDaysPerMonth);
+      }
+      if (data.shiftPreference) {
+        setShiftOrder(data.shiftPreference.split(","));
+      }
+
       setShowToast(true);
       setIsEditing(false);
+
+      window.dispatchEvent(new Event("preferencesUpdated"));
     } catch (error) {
       console.error("Error:", error);
-      alert("선호도 저장에 실패했습니다.");
+      alert(
+        error instanceof Error ? error.message : "선호도 저장에 실패했습니다."
+      );
     }
   };
 

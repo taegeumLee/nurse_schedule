@@ -81,7 +81,7 @@ export default function NursePage() {
         const scheduleData = await scheduleRes.json();
         setSchedules(scheduleData);
       } catch (error) {
-        console.error("데이터 조회 중 오류 발생:", error);
+        console.error("데이터 조회 중 오류 ��생:", error);
       } finally {
         setIsLoading(false);
       }
@@ -107,12 +107,12 @@ export default function NursePage() {
     let touchStartY = 0;
     let touchEndY = 0;
 
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStartY = e.touches[0].clientY;
+    const handleTouchStart = (e: Event) => {
+      touchStartY = (e as TouchEvent).touches[0].clientY;
     };
 
-    const handleTouchEnd = (e: TouchEvent) => {
-      touchEndY = e.changedTouches[0].clientY;
+    const handleTouchEnd = (e: Event) => {
+      touchEndY = (e as TouchEvent).changedTouches[0].clientY;
       const diff = touchStartY - touchEndY;
       const threshold = 50; // 스와이프 감지 임계값
 

@@ -5,7 +5,10 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function GET() {
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("token");
@@ -18,41 +21,48 @@ export async function GET() {
     }
 
     const decoded = jose.decodeJwt(token.value);
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId as string },
+    const userId = decoded.userId as string;
+
+    const group = await prisma.group.findUnique({
+      where: { id: params.id },
       select: {
         id: true,
         name: true,
-        email: true,
-        role: true,
-        preferredOffDaysPerMonth: true,
-        shiftPreference: true,
-        department: {
+        description: true,
+        inviteCode: true,
+        members: {
           select: {
+            id: true,
             name: true,
           },
         },
       },
     });
 
-    const formattedUser = {
-      ...user,
-      department: user?.department?.name || null,
-    };
-
-    if (!formattedUser) {
+    if (!group) {
       return NextResponse.json(
-        { message: "사용자를 찾을 수 없습니다." },
+        { message: "그룹을 찾을 수 없습니다." },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(formattedUser);
+    // 그룹 멤버인�� 확인
+    const isMember = group.members.some((member) => member.id === userId);
+    if (!isMember) {
+      return NextResponse.json(
+        { message: "접근 권한이 없습니다." },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json(group);
   } catch (error) {
-    console.error("User info error:", error);
+    console.error("Group detail error:", error);
     return NextResponse.json(
       { message: "서버 오류가 발생했습니다." },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }

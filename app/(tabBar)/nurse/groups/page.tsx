@@ -16,12 +16,64 @@ interface Group {
 
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
   const { theme } = useTheme();
   const currentTheme = theme === "dark" ? darkTheme : lightTheme;
 
   useEffect(() => {
-    // TODO: API 구현 후 그룹 목록 가져오기
+    const fetchGroups = async () => {
+      try {
+        const res = await fetch("/api/groups");
+        if (!res.ok) {
+          throw new Error("그룹 목록을 가져올 수 없습니다.");
+        }
+        const data = await res.json();
+        setGroups(data);
+      } catch (error) {
+        console.error(error);
+        alert("그룹 목록을 가져오는데 실패했습니다.");
+      }
+    };
+
+    fetchGroups();
   }, []);
+
+  const handleJoinGroup = async () => {
+    if (!inviteCode.trim()) {
+      alert("초대 코드를 입력해주세요.");
+      return;
+    }
+
+    setIsJoining(true);
+    try {
+      const res = await fetch("/api/groups/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ inviteCode: inviteCode.trim() }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "그룹 참여에 실패했습니다.");
+      }
+
+      const data = await res.json();
+      setShowJoinModal(false);
+      setInviteCode("");
+      // TODO: 그룹 목록 새로고침
+    } catch (error) {
+      console.error(error);
+      alert(
+        error instanceof Error ? error.message : "그룹 참여에 실패했습니다."
+      );
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   return (
     <div className="p-4">
@@ -36,12 +88,20 @@ export default function GroupsPage() {
           <h1 className={`text-2xl font-bold ${currentTheme.text.primary}`}>
             근무 그룹
           </h1>
-          <Link
-            href="/nurse/groups/create"
-            className={`${currentTheme.button.primary} px-4 py-2 rounded-lg`}
-          >
-            그룹 만들기
-          </Link>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowJoinModal(true)}
+              className={`${currentTheme.button.secondary} px-4 py-2 rounded-lg`}
+            >
+              그룹 참여
+            </button>
+            <Link
+              href="/nurse/groups/create"
+              className={`${currentTheme.button.primary} px-4 py-2 rounded-lg`}
+            >
+              그룹 만들기
+            </Link>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -71,6 +131,45 @@ export default function GroupsPage() {
             </Link>
           ))}
         </div>
+
+        {showJoinModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div
+              className={`${currentTheme.background.card} rounded-xl p-6 w-full max-w-md`}
+            >
+              <h2
+                className={`text-xl font-bold mb-4 ${currentTheme.text.primary}`}
+              >
+                그룹 참여
+              </h2>
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="초대 코드를 입력하세요"
+                className="w-full px-4 py-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 mb-4"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setShowJoinModal(false);
+                    setInviteCode("");
+                  }}
+                  className={`${currentTheme.button.secondary} px-4 py-2 rounded-lg`}
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleJoinGroup}
+                  disabled={isJoining}
+                  className={`${currentTheme.button.primary} px-4 py-2 rounded-lg disabled:opacity-50`}
+                >
+                  {isJoining ? "참여 중..." : "참여하기"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );
