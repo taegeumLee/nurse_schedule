@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { lightTheme, darkTheme } from "@/app/styles/theme";
+import NurseCalendar from "@/app/components/calendar/NurseCalendar";
 
 interface UserInfo {
   name: string;
@@ -81,7 +82,7 @@ export default function NursePage() {
         const scheduleData = await scheduleRes.json();
         setSchedules(scheduleData);
       } catch (error) {
-        console.error("데이터 조회 중 오류 ��생:", error);
+        console.error("데이터 조회 중 오류 발생:", error);
       } finally {
         setIsLoading(false);
       }
@@ -143,40 +144,8 @@ export default function NursePage() {
     );
   }
 
-  const calendarEvents = schedules.map((schedule) => ({
-    title: shiftLabels[schedule.shiftType as keyof typeof shiftLabels],
-    date: schedule.date,
-    backgroundColor:
-      shiftColors[schedule.shiftType as keyof typeof shiftColors],
-    borderColor: shiftColors[schedule.shiftType as keyof typeof shiftColors],
-    allDay: true,
-    display: "block",
-  }));
-
-  // 이번 달의 근무 유형별 카운트 계산
-  const calculateMonthlyShiftCounts = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-
-    return schedules.reduce((acc, schedule) => {
-      const scheduleDate = new Date(schedule.date);
-      if (
-        scheduleDate.getMonth() === currentMonth &&
-        scheduleDate.getFullYear() === currentYear
-      ) {
-        acc[schedule.shiftType] = (acc[schedule.shiftType] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-  };
-
-  const monthlyShiftCounts = calculateMonthlyShiftCounts();
-
   return (
-    <div
-      className={`min-h-screen bg-gradient-to-b ${currentTheme.background.primary} p-4 sm:p-6`}
-    >
+    <div>
       {/* 상단 프로필 섹션 */}
       <div
         className={`${currentTheme.background.card} backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6`}
@@ -225,7 +194,10 @@ export default function NursePage() {
               />
               <span>{label}</span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {monthlyShiftCounts[type] || 0}
+                {
+                  schedules.filter((schedule) => schedule.shiftType === type)
+                    .length
+                }
               </span>
             </div>
           ))}
@@ -293,28 +265,10 @@ export default function NursePage() {
             overflow: visible !important;
           }
         `}</style>
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[dayGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
-          locale="ko"
-          events={calendarEvents}
-          headerToolbar={false}
-          height="auto"
-          eventDisplay="block"
-          dayMaxEvents={1}
-          datesSet={(dateInfo) => {
-            setCurrentDate(dateInfo.view.currentStart);
-          }}
-          eventContent={(eventInfo) => (
-            <div className="p-1 text-xs text-white font-medium text-center rounded-md shadow-sm transition-transform hover:scale-105">
-              {eventInfo.event.title}
-            </div>
-          )}
-          dayCellClassNames="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-          editable={false}
-          selectable={false}
-          dragScroll={true}
+        <NurseCalendar
+          schedules={schedules}
+          shiftColors={shiftColors}
+          shiftLabels={shiftLabels}
         />
       </div>
     </div>

@@ -10,6 +10,8 @@ import Toast from "@/app/components/Toast";
 import GroupHeader from "@/app/components/group/GroupHeader";
 import GroupEditForm from "@/app/components/group/GroupEditForm";
 import GroupCalendar from "@/app/components/group/GroupCalendar";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/app/lib/firebase";
 
 interface Schedule {
   id: string;
@@ -113,14 +115,16 @@ export default function GroupDetailPage() {
   };
 
   const handleSave = async () => {
-    if (!params?.id) return;
-
     try {
       const formData = new FormData();
       formData.append("name", editedName);
-      formData.append("description", editedDescription || "");
+      formData.append("description", editedDescription);
+
       if (editedImage) {
-        formData.append("image", editedImage);
+        const storageRef = ref(storage, `groups/${params.id}/${Date.now()}`);
+        const snapshot = await uploadBytes(storageRef, editedImage);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        formData.append("imageUrl", downloadURL);
       }
 
       const res = await fetch(`/api/groups/${params.id}`, {

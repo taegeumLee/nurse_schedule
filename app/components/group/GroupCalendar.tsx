@@ -14,6 +14,7 @@ import dynamic from "next/dynamic";
 // FullCalendar를 클라이언트 사이드에서만 렌더링하도록 설정
 const DynamicFullCalendar = dynamic(() => import("@fullcalendar/react"), {
   ssr: false,
+  loading: () => <div>달력 로딩중...</div>,
 });
 
 interface Schedule {
@@ -53,17 +54,22 @@ export default function GroupCalendar({
   schedules,
   shiftColors,
 }: GroupCalendarProps) {
-  const { theme } = useTheme();
-  const currentTheme = theme === "dark" ? darkTheme : lightTheme;
+  const [mounted, setMounted] = useState(false);
+  const { theme, systemTheme } = useTheme();
+  const currentTheme = mounted
+    ? theme === "dark" || (theme === "system" && systemTheme === "dark")
+      ? darkTheme
+      : lightTheme
+    : lightTheme; // 기본값으로 light 테마 사용
+
   const [selectedShiftTypes, setSelectedShiftTypes] = useState<Set<string>>(
     new Set(Object.keys(defaultShiftType))
   );
   const [viewType, setViewType] = useState<"calendar" | "table">("calendar");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    setMounted(true);
   }, []);
 
   const handleShiftTypeToggle = (shiftType: string) => {
@@ -114,8 +120,8 @@ export default function GroupCalendar({
     };
   };
 
-  if (!isMounted) {
-    return null; // 또는 로딩 상태를 표시
+  if (!mounted) {
+    return <div>로딩중...</div>;
   }
 
   return (

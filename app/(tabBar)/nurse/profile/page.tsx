@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import ShiftColorSettings from "@/app/components/ShiftColorSettings";
-import PreferenceSettings from "@/app/components/PreferenceSettings";
+import Image from "next/image";
 import { useTheme } from "next-themes";
 import { lightTheme, darkTheme } from "@/app/styles/theme";
+import ShiftColorSettings from "@/app/components/ShiftColorSettings";
+import PreferenceSettings from "@/app/components/PreferenceSettings";
+import ProfileEditForm from "@/app/components/profile/ProfileEditForm";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/app/lib/firebase";
 
 interface UserInfo {
   name: string;
@@ -15,11 +19,15 @@ interface UserInfo {
   department: string;
   preferredOffDaysPerMonth: number;
   shiftPreference: string;
+  imageUrl: string | null;
 }
 
 export default function ProfilePage() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [editedImage, setEditedImage] = useState<File | null>(null);
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const currentTheme = theme === "dark" ? darkTheme : lightTheme;
@@ -49,6 +57,44 @@ export default function ProfilePage() {
     router.push("/login");
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      setEditedImage(file);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const formData = new FormData();
+      formData.append("name", editedName);
+
+      if (editedImage) {
+        const storageRef = ref(
+          storage,
+          `profiles/${userInfo?.userId}/${Date.now()}`
+        );
+        const snapshot = await uploadBytes(storageRef, editedImage);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        formData.append("imageUrl", downloadURL);
+      }
+
+      const res = await fetch("/api/user/profile", {
+        method: "PUT",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("프로필 수정에 실패했습니다.");
+
+      const updatedUser = await res.json();
+      setUserInfo({ ...userInfo!, ...updatedUser });
+      setIsEditing(false);
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : "수정에 실패했습니다.");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -64,24 +110,65 @@ export default function ProfilePage() {
       <div
         className={`${currentTheme.background.card} backdrop-blur-sm rounded-xl shadow-lg p-6`}
       >
-        <div className="flex flex-col items-center space-y-4">
-          <div className="h-24 w-24 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-            {userInfo?.name[0]}
-          </div>
-          <div className="text-center">
-            <p className={`text-sm ${currentTheme.text.tertiary}`}>
-              {userInfo?.department || "부서 미지정"}
-            </p>
-            <h2
-              className={`text-2xl font-bold ${currentTheme.text.primary} mt-1`}
+        <div className="flex justify-end mb-4">
+          {!isEditing && (
+            <button
+              onClick={() => {
+                setIsEditing(true);
+                setEditedName(userInfo?.name || "");
+              }}
+              className={`${currentTheme.button.secondary} p-2 rounded-lg`}
             >
-              {userInfo?.name}
-            </h2>
-            <p className={`${currentTheme.text.secondary} mt-1`}>
-              {userInfo?.email}
-            </p>
-          </div>
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+            </button>
+          )}
         </div>
+
+        {isEditing ? (
+          <ProfileEditForm
+            user={userInfo!}
+            editedName={editedName}
+            editedImage={editedImage}
+            onNameChange={setEditedName}
+            onImageChange={handleImageChange}
+            onCancel={() => {
+              setIsEditing(false);
+              setEditedImage(null);
+            }}
+            onSave={handleSave}
+          />
+        ) : (
+          <div className="flex flex-col items-center space-y-4">
+            <div className="h-24 w-24 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+              {userInfo?.name[0]}
+            </div>
+            <div className="text-center">
+              <p className={`text-sm ${currentTheme.text.tertiary}`}>
+                {userInfo?.department || "부서 미지정"}
+              </p>
+              <h2
+                className={`text-2xl font-bold ${currentTheme.text.primary} mt-1`}
+              >
+                {userInfo?.name}
+              </h2>
+              <p className={`${currentTheme.text.secondary} mt-1`}>
+                {userInfo?.email}
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 flex justify-center">
           <button

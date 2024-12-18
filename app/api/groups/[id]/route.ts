@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import * as jose from "jose";
 import { PrismaClient } from "@prisma/client";
-import { writeFile } from "fs/promises";
-import { join } from "path";
 
 const prisma = new PrismaClient();
 
@@ -81,26 +79,7 @@ export async function PUT(
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
-    const image = formData.get("image");
-
-    let imageUrl = undefined;
-
-    if (image && image instanceof Blob) {
-      const buffer = Buffer.from(await image.arrayBuffer());
-      const filename = `${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(7)}.jpg`;
-      const uploadDir = join(process.cwd(), "public", "uploads");
-      const filepath = join(uploadDir, filename);
-
-      try {
-        await writeFile(filepath, buffer);
-        imageUrl = `/uploads/${filename}`;
-      } catch (error) {
-        console.error("File write error:", error);
-        throw new Error("이미지 저장에 실패했습니다.");
-      }
-    }
+    const imageUrl = formData.get("imageUrl") as string;
 
     const group = await prisma.group.update({
       where: { id },

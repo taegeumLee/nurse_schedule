@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useTheme } from "next-themes";
 import { lightTheme, darkTheme } from "@/app/styles/theme";
+import { ShiftColors } from "@/app/types/schedule";
 
 interface User {
   id: string;
@@ -20,7 +21,7 @@ interface GroupTableProps {
   days: Date[];
   users: User[];
   tableSchedules: TableSchedule;
-  shiftColors: Record<string, string>;
+  shiftColors: ShiftColors;
   defaultShiftType: Record<string, string>;
 }
 
